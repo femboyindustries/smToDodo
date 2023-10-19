@@ -1,5 +1,4 @@
-# smToDodo, by Jollysivie
-# build with Python 3.11.5, Simfile 2.1.1 and pydub 0.25.1
+# smToDodo: build with Python 3.11.5, Simfile 2.1.1 and pydub 0.25.1
 import simfile
 import json, re, argparse, configparser
 from simfile.timing import Beat, TimingData
@@ -16,7 +15,7 @@ __version__ = "1.0"
 ### Argument / Config parsing and checking ### 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("chart_path", help = "the path of the stepmania file you want to convert", type = Path)
+parser.add_argument("simfile_path", help = "the path of the simfile you want to convert", type = Path)
 parser.add_argument("-hs", "--hitsounds", help = "enables hitsounding on all charts", action = "store_true")
 parser.add_argument("-na", "--noAutoAdd", help = "disables adding the song to the song selection automatically", action = "store_true")
 parser.add_argument("-c", "--config", help = "the path of the config file (defaults to smToDodo.ini)", type = Path, default="smToDodo.ini")
@@ -31,20 +30,20 @@ else:
     print("ERROR: You haven't set the song path in the config! Please add your song path in the config.")
     raise SystemExit
 
-if args.chart_path.is_file():
+if args.simfile_path.is_file():
     try:
-        stepfile = simfile.open(args.chart_path)
+        stepfile = simfile.open(args.simfile_path)
     except FileNotFoundError:
-        print("ERROR: The chart path isn't a valid stepmania file!")
+        print("ERROR: The simfile path isn't a valid simfile!")
         raise SystemExit
 else:
     try:
-        stepfile = simfile.open(next(args.chart_path.glob("*.ssc")))
+        stepfile = simfile.open(next(args.simfile_path.glob("*.ssc")))
     except StopIteration:
         try:
-            stepfile = simfile.open(next(args.chart_path.glob("*.sm")))
+            stepfile = simfile.open(next(args.simfile_path.glob("*.sm")))
         except StopIteration:
-            print("ERROR: The chart path doesn't contain a valid stepfile!")
+            print("ERROR: The simfile path doesn't contain a valid simfile!")
             raise SystemExit
 
 if not songs_path.is_dir():
@@ -116,10 +115,10 @@ output = {
     "preferredAssignments": [],
 }
 engine = TimingEngine(TimingData(stepfile))
-if args.chart_path.is_file():
-    music = AudioSegment.from_file(args.chart_path.parent.joinpath(stepfile.music))
+if args.simfile_path.is_file():
+    music = AudioSegment.from_file(args.simfile_path.parent.joinpath(stepfile.music))
 else:
-    music = AudioSegment.from_file(args.chart_path.joinpath(stepfile.music))
+    music = AudioSegment.from_file(args.simfile_path.joinpath(stepfile.music))
 
 output["slug"] = f"{r(stepfile.titletranslit if stepfile.titletranslit else stepfile.title)}-{r(stepfile.artisttranslit if stepfile.artisttranslit else stepfile.artist)}".lower()
 if args.hitsounds:
@@ -148,13 +147,13 @@ for slot, chart in enumerate(stepfile.charts):
 
     slot = slot - duplicates
     if slot > 6:
-        print("WARNING: Your file has more than 7 charts! Dodo Re Mi only supports 7 charts per song. A folder will still be generated, but some of the charts might be missing.")
+        print("WARNING: Your simfile has more than 7 charts! Dodo Re Mi only supports 7 charts per song. A folder will still be generated, but some of the charts might be missing.")
         print(f"    Here are the IDs of the generated charts: {slugs}")
         break
 
     slug = f"{r(chart.stepstype)}-{chart.difficulty}{chart.meter}-{r(chart.description)}".lower()
     if slug in slugs:
-        print("WARNING: Your file has two charts that generated the same ID! This means they are equal in steps type, difficulty, meter and description. The duplicate will be skipped.")
+        print("WARNING: Your simfile has two charts that generated the same ID! This means they are equal in steps type, difficulty, meter and description. The duplicate will be skipped.")
         print(f"    Here is the ID of the duplicate: {slug}")
         duplicates += 1
         continue
@@ -169,7 +168,7 @@ for slot, chart in enumerate(stepfile.charts):
     beatmap["category"] = categories[slot] 
     beatmap["difficulty"] = diffToNum(chart.difficulty)
 
-    instrument = config["Instruments"]["InstEdit"] if chart.difficulty == "Edit" else config["Instruments"]["InstNormal"]
+    instrument = config["Instruments"]["InstEditName"] if chart.difficulty == "Edit" else config["Instruments"]["InstNormalName"]
     beatmap["instruments"].append(instrument)
 
 
@@ -198,7 +197,7 @@ for slot, chart in enumerate(stepfile.charts):
     ### Adding to output ###
 
     if maxColumn > 5:
-        print("WARNING: Your file has a chart that has more than 6 columns! Dodo Re Mi only supports 6 lanes per chart. The chart will still be added, but notes in lanes above the sixth have been discarded.")
+        print("WARNING: Your simfile has a chart that has more than 6 columns! Dodo Re Mi only supports 6 lanes per chart. The chart will still be added, but notes in lanes above the sixth have been discarded.")
         print(f"    Here is the ID of the relevant chart: {slug}")
         maxColumn = 5
     beatmap["laneCount"] = maxColumn + 1
