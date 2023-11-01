@@ -163,6 +163,8 @@ for slot, chart in enumerate(stepfile.charts):
 
     ### General settings ###
 
+    engine = TimingEngine(TimingData(stepfile, chart))
+
     beatmap = mapTemplate()
     beatmap["slug"] = slug
     beatmap["category"] = categories[slot] 
@@ -184,7 +186,9 @@ for slot, chart in enumerate(stepfile.charts):
         if n.column > 5:
             maxColumn = 6
             continue
-
+        if not engine.hittable(n.beat):
+            continue
+        
         input = {"start": t(n.beat), "lanes": [n.column], "notes": hitsounding(chart.difficulty == "Edit")}
         if type(n) == NoteWithTail:
             input["duration"] = t(n.tail_beat) - t(n.beat)
@@ -216,7 +220,7 @@ for b in output["beatmaps"]:
 # How long a song plays seems to depend on the music file length, NOT the duration set
 # So I'm expanding the music file if there are notes after the music file ended (that shouldn't happen but just to make sure)
 if latest_note >= musicDuration():
-    music = AudioSegment.silent(duration = latest_note - musicDuration() + 1) + music
+    music = music + AudioSegment.silent(duration = latest_note - musicDuration() + 1)
 
 # Notes before 3 seconds do not appear because the web client tries to let them appear before 0ms
 # I tried working with guideStartOffset, but that didn't really work
